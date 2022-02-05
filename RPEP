@@ -1,0 +1,195 @@
+#experiment TloadDback
+#Lou Van Driessche, Jan 2022
+# import modules
+from psychopy import visual, event, core, gui, data
+import numpy as np
+import os, pandas
+from psychopy import sound
+
+
+
+#file management and participant info 
+## set the directory
+my_directory = os.getcwd()
+
+## construct the name of the folder that will hold the data
+directory_to_write_to      = my_directory + "/data" 
+
+if not os.path.isdir(directory_to_write_to):
+    os.mkdir(directory_to_write_to)
+    
+## initialize the participant information dialog box
+info = {"Participant name":"Incognito","Participant number":0,"Gender":["male", "female", "X"], "Age":0, "Handedness":["right", "left", "ambidextrous"]}
+
+## make sure the data file has a novel name
+already_exists = True
+while already_exists:
+    
+    ## present the dialog box
+    myDlg = gui.DlgFromDict(dictionary = info, title = "TloadDback")
+    
+    ## construct the name of the data file
+    file_name = directory_to_write_to + "/TloadDback_subject_" + str(info["Participant number"])
+        
+    ## check whether the name of the data file has already been used
+    if not os.path.isfile(file_name + ".csv"):
+        
+        ## if there isn't a data file with this name used yet, we're ready to start
+        already_exists = False
+        
+    else:
+        
+        ## if the data file name has already been used, ask the participant to inser a different participant number
+        myDlg2 = gui.Dlg(title = "Error")
+        myDlg2.addText("Try another participant number")
+        myDlg2.show()
+        
+## extract the name of the participant from the dialog box information
+subject_name = info["Participant name"]
+
+## remove the name of the participant from the dialog box information (anonimity!)
+#info.pop("Participant name")
+
+## start the ExperimentHandler, add the output file name and store the dialog box info (without the participant name!)
+thisExp = data.ExperimentHandler(dataFileName = file_name, extraInfo = info)
+        
+#randomization
+
+##constants 
+############
+
+##number of blocks and trials
+N_trials        = 4
+N_blocks        = 2
+
+## make the design based on the core trial characteristics
+##########################################################
+
+##declare al levels of the factors 
+Letters         = np.array(["A","C","T","L","N","E","U","P"])
+Numbers         = np.array ([1,2,3,4,5,6,7,8,9])
+PresentedLetter =[]
+PresentedNumber=[]
+RespLetters     = ["space"]
+RespNumbers     = ["j","k"]
+
+
+def write_data():
+    trials.addData("response", Response)
+    trials.addData("Acc", accuracy)
+    trials.addData("RT", RT)
+    
+#initizaling window
+## window
+win             = visual.Window([800,600], units='norm',color = (-1,-1,-1))
+
+
+## messages and stimuli
+Welcome         = visual.TextStim(win, text = "Welcome to the experiment, " + info["Participant name"] 
+                                                + "!\n\nPress the space bar to continue.",color = (1,1,1))
+Questionnaire   = visual.TextStim(win, text = "OK", color = (1,1,1))
+Instructions    = visual.TextStim(win, text = "OK", color = (1,1,1), )
+Block_start     = visual.TextStim(win, text = "OK",color = (1,1,1))
+Stim_Letters    = visual.TextStim(win, text = "OK", color = (1,1,1))
+Stim_Numbers    = visual.TextStim(win, text = "OK", color = (1,1,1))
+Feedback        = visual.TextStim(win, text = "OK",color = (1,1,1))
+Goodbye         = visual.TextStim(win, text = "OK",color=(1,1,1))
+
+
+Questionnaire.text= ("First I will ask you to answer the following questions on a rating scale from 1 to 10. "+"\n" +
+                     "For example if the question is : 'how hungry are you?' then 1 means not hungry at al and 10 means extremely hungry")
+Instructions.text =("Very good! Now the experiment will begin. "+"\n"+ 
+                    "You wil need to pay attention to 2 things.\n" + "\n" +
+                    "First you will have to pay attention to the letter. \n" +
+                    "If the letter is the same as the previous letter, press the space bar. \n"+ "\n" +
+                    "During this task you will also have to look if the number is odd or even.\n"+
+                    "If the number is odd, press J. If the number is even, press K. \n")
+Goodbye.text      =("Thank you for participating, \n"+ "Goodbye!")
+
+    
+# Communicating to participant
+## display the welcome message
+Welcome.draw()
+win.flip()
+event.waitKeys(keyList = "space") 
+
+        
+## display the instructions
+Instructions.draw()
+win.flip()
+event.waitKeys(keyList = "space")
+
+##block loop
+for b in range(N_blocks):
+    Block_start.text =("Block " + str(b+1) + " will start now. \n" + "Press the space bar to continue.")
+    Block_start.draw()
+    win.flip()
+    event.waitKeys(keyList = "space")
+    
+    ##trial loop( 1 trial to present stimuli) 
+    for i in range(N_trials):
+        #Numbers
+        ##randomize number and display on screen
+        ThisNumber = np.random.choice(Numbers)
+        PresentedNumber.append(ThisNumber)
+
+        #delete previous number 
+        if len(PresentedNumber) >= 2:
+            PresentedNumber = PresentedNumber[1:]
+            
+        Stim_Numbers.text = str(PresentedNumber[0])
+        Stim_Numbers.draw()
+        win.flip()
+        
+        ## clear the keyboard input
+        event.clearEvents(eventType = "keyboard")
+        keys = event.waitKeys(maxWait = 0.5, keyList = RespNumbers)
+        keys1 = event.waitKeys(maxWait = 0.5, keyList = RespNumbers[0])
+        keys2 = event.waitKeys(maxWait = 0.5, keyList = RespNumbers[1])
+            
+        ##define accuracy for Numbers 
+        if ThisNumber % 2 == 0:
+            Correct_response = keys1
+        else:
+            Correct_response = keys2
+            
+        #Letters
+        ##randomize letters and display on screen
+        ThisLetter =np.random.choice(Letters)
+        PresentedLetter.append(ThisLetter)
+        
+        if len(PresentedLetter) >= 2:
+            PresentedLetter = PresentedLetter[1:]
+            
+        Stim_Letters.text = str(PresentedLetter[0])
+        
+        Stim_Letters.draw() 
+        win.flip()
+        
+        ## clear the keyboard input
+        event.clearEvents(eventType = "keyboard")
+        keys3  = event.waitKeys(maxWait = 1, keyList = RespLetters[0])
+    
+        ##define accuracy for Letters
+        one_back = 'Not applicable'
+        # set whatever keypress values are appropriate for this trial:
+        if PresentedLetter == one_back:
+            Correct_response = keys3
+        else:
+            continue
+        # update the one-back value for the *next* trial:
+        one_back = PresentedLetter
+        ## calculate the derived response properties
+        Accuracy = (Response == Correct_response) * 1
+        
+        
+    
+        
+# Ending the experiment
+## display the goodbye message
+Goodbye.draw()
+win.flip()
+event.waitKeys(keyList = "space")
+
+## close the experiment window 
+win.close()  
