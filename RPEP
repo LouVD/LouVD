@@ -6,6 +6,12 @@ import numpy as np
 import os, pandas
 from psychopy import sound
 
+#speedy = 0
+# 1) add music 
+# 2) randomize dat ze 10 keer op spatie moeten duwen 
+# 3) zet alles in excel file 
+# 4) questionnaire 
+
 
 
 #file management and participant info 
@@ -52,7 +58,7 @@ subject_name = info["Participant name"]
 
 ## start the ExperimentHandler, add the output file name and store the dialog box info (without the participant name!)
 thisExp = data.ExperimentHandler(dataFileName = file_name, extraInfo = info)
-        
+
 #randomization
 
 ##constants 
@@ -73,12 +79,16 @@ PresentedNumber=[]
 RespLetters     = ["space"]
 RespNumbers     = ["j","k"]
 
+## randomization step 1: within subject design (repeatedly letters and numbers on screen)
+Design= [Letters, Numbers]
 
-def write_data():
-    trials.addData("response", Response)
-    trials.addData("Acc", accuracy)
-    trials.addData("RT", RT)
-    
+## randomization step 2: deduce correct response 
+#correct =
+
+## randomization step 3: create the trials for the entire experiment via the TrialHandler
+trials = data.TrialHandler(trialList = Design, nReps = 1, name = "Experiment", method = "random")
+thisExp.addLoop(trials)
+
 #initizaling window
 ## window
 win             = visual.Window([800,600], units='norm',color = (-1,-1,-1))
@@ -105,7 +115,39 @@ Instructions.text =("Very good! Now the experiment will begin. "+"\n"+
                     "During this task you will also have to look if the number is odd or even.\n"+
                     "If the number is odd, press J. If the number is even, press K. \n")
 Goodbye.text      =("Thank you for participating, \n"+ "Goodbye!")
+my_clock           = core.Clock()
 
+## VAS-F questionnaire 
+Questionnaire.draw()
+win.flip()
+event.waitKeys(keyList = "space")           
+
+myRatingScale = visual.RatingScale(win, low=0, high=10, marker="slider",
+    tickMarks=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], stretch=1.5, tickHeight=1.5, 
+    labels=["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"])
+myItem = visual.TextStim(win, text="", height=.08, units="norm")
+
+for quest in range(3):
+
+    ## remove any remaining ratings
+    myRatingScale.reset() 
+
+    if quest == 0:
+        myItem.text = "How tired do you feel?"
+    elif quest == 1:
+        myItem.text = "How sleepy are you?" 
+    elif quest == 2:
+        myItem.text = "How exhausted do you feel?"
+    else:
+        myItem.text = "How active do you feel?"
+
+    ## show & update until a response has been made
+    while myRatingScale.noResponse:
+        myItem.draw()
+        myRatingScale.draw()
+        win.flip()
+        
+    #store question information in excell file:
     
 # Communicating to participant
 ## display the welcome message
@@ -127,7 +169,7 @@ for b in range(N_blocks):
     event.waitKeys(keyList = "space")
     
     ##trial loop( 1 trial to present stimuli) 
-    for i in range(N_trials):
+    for i in trials:
         #Numbers
         ##randomize number and display on screen
         ThisNumber = np.random.choice(Numbers)
@@ -143,16 +185,17 @@ for b in range(N_blocks):
         
         ## clear the keyboard input
         event.clearEvents(eventType = "keyboard")
-        keys = event.waitKeys(maxWait = 0.5, keyList = RespNumbers)
-        keys1 = event.waitKeys(maxWait = 0.5, keyList = RespNumbers[0])
-        keys2 = event.waitKeys(maxWait = 0.5, keyList = RespNumbers[1])
-            
+        my_clock.reset()
+        keys_Numbers  = event.waitKeys(keyList = RespNumbers)
+        RT_Numbers = my_clock.getTime()
+        
         ##define accuracy for Numbers 
         if ThisNumber % 2 == 0:
-            Correct_response = keys1
+            CorResp = keys_Numbers[RespNumbers[0]]
         else:
-            Correct_response = keys2
+            CorResp = keys_Numbers([RespNumbers[1]])
             
+        Accuracy_Numbers = (keys_Numbers[0]== CorResp)*1
         #Letters
         ##randomize letters and display on screen
         ThisLetter =np.random.choice(Letters)
@@ -168,23 +211,33 @@ for b in range(N_blocks):
         
         ## clear the keyboard input
         event.clearEvents(eventType = "keyboard")
-        keys3  = event.waitKeys(maxWait = 1, keyList = RespLetters[0])
+        my_clock.reset()
+        keys_Letters  = event.waitKeys(maxWait= 1, keyList = RespLetters)
+        RT_Letters = my_clock.getTime()
     
         ##define accuracy for Letters
         one_back = 'Not applicable'
         # set whatever keypress values are appropriate for this trial:
         if PresentedLetter == one_back:
-            Correct_response = keys3
+            CorResp = keys_Letters(RespLetters[0])
         else:
             continue
         # update the one-back value for the *next* trial:
         one_back = PresentedLetter
+        
         ## calculate the derived response properties
-        Accuracy = (Response == Correct_response) * 1
+        Accuracy_Letters = (keys_Letters[0]== CorResp) * 1
         
-        
-    
-        
+        def write_data():
+            trials.addData("response", Response)
+            trials.addData("Accuracy_Numbers", Accuracy_Numbers)
+            trials.addData("Accuracy_Letters", Accuracy_Letters)
+            trials.addData("RT_Numbers", RT_Numbers)
+            trials.addData("RT_Letters", RT_Letters)
+            
+        ## let the ExperimentHandler proceed to the next trial
+        thisExp.nextEntry()
+
 # Ending the experiment
 ## display the goodbye message
 Goodbye.draw()
